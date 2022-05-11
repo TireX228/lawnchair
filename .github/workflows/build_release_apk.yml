@@ -4,10 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - 12-dev
-  pull_request:
-    branches:
-      - 12-dev
+      - 12.1-dev
 
 jobs:
   build-release-apk:
