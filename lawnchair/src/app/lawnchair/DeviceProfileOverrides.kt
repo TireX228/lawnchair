@@ -39,9 +39,8 @@ class DeviceProfileOverrides(context: Context) {
         var allAppsIconTextSizeFactor: Float,
 
         var enableTaskbarOnPhone: Boolean,
-
-        val dbFile: String = "launcher_${numRows}_${numColumns}_${numHotseatColumns}.db"
     ) {
+        val dbFile get() = "launcher_${numRows}_${numColumns}_${numHotseatColumns}.db"
 
         constructor(
             prefs: PreferenceManager,
@@ -66,12 +65,8 @@ class DeviceProfileOverrides(context: Context) {
             enableTaskbarOnPhone = prefs2.enableTaskbarOnPhone.firstBlocking()
         )
 
-        fun apply(idp: InvariantDeviceProfile) {
+        fun applyUi(idp: InvariantDeviceProfile) {
             // apply grid size
-            idp.numShownHotseatIcons = numHotseatColumns
-            idp.numDatabaseHotseatIcons = numHotseatColumns
-            idp.numRows = numRows
-            idp.numColumns = numColumns
             idp.numAllAppsColumns = numAllAppsColumns
             idp.numDatabaseAllAppsColumns = numAllAppsColumns
             idp.numFolderRows = numFolderRows
@@ -84,8 +79,6 @@ class DeviceProfileOverrides(context: Context) {
             idp.iconTextSize[INDEX_ALL_APPS] *= (if (enableAllAppsIconText) allAppsIconTextSizeFactor else 0f)
 
             idp.enableTaskbarOnPhone = Utilities.ATLEAST_S_V2 && enableTaskbarOnPhone
-
-            idp.dbFile = dbFile
         }
     }
 
