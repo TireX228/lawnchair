@@ -4,7 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - 12.1-dev
+      - 12-dev
+  pull_request:
+    branches:
+      - 12-dev
 
 jobs:
   build-release-apk:
@@ -38,7 +41,3 @@ jobs:
         with:
           name: ${{ github.sha }}
           path: build/outputs
-
-          TELEGRAM_TEAM_GROUP_ID: ${{ secrets.NOTIFY_CHANNEL_ID }}
-          ARTIFACT_DIRECTORY: artifacts/release-apk
-          GITHUB_REF: ${{ github.ref }}
