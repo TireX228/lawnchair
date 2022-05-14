@@ -1,24 +1,38 @@
 package app.lawnchair.smartspace.provider
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.drawable.Icon
 import android.text.TextUtils
+import app.lawnchair.BlankActivity
 import app.lawnchair.getAppName
 import app.lawnchair.smartspace.model.SmartspaceAction
 import app.lawnchair.smartspace.model.SmartspaceScores
 import app.lawnchair.smartspace.model.SmartspaceTarget
+import app.lawnchair.ui.preferences.PreferenceActivity
+import app.lawnchair.ui.preferences.Routes
+import app.lawnchair.ui.preferences.components.isNotificationServiceEnabled
+import app.lawnchair.ui.preferences.components.notificationDotsEnabled
 import com.android.launcher3.R
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.first
 
-class NowPlayingProvider(private val context: Context) : SmartspaceDataSource {
+class NowPlayingProvider(context: Context) : SmartspaceDataSource(
+    context, R.string.smartspace_now_playing, { smartspaceNowPlaying }
+) {
 
-    private val media = MediaListener(context, this::reload).also { it.onResume() }
     private val defaultIcon = Icon.createWithResource(context, R.drawable.ic_music_note)
 
-    private val targetsFlow = MutableStateFlow(emptyList<SmartspaceTarget>())
-    override val targets get() = targetsFlow
+    override val internalTargets = callbackFlow {
+        val mediaListener = MediaListener(context) {
+            trySend(listOfNotNull(getSmartspaceTarget(it)))
+        }
+        mediaListener.onResume()
+        awaitClose { mediaListener.onPause() }
+    }
 
-    private fun getSmartspaceTarget(): SmartspaceTarget? {
+    private fun getSmartspaceTarget(media: MediaListener): SmartspaceTarget? {
         val tracking = media.tracking ?: return null
         val title = tracking.info.title ?: return null
 
@@ -48,11 +62,21 @@ class NowPlayingProvider(private val context: Context) : SmartspaceDataSource {
         )
     }
 
-    private fun reload() {
-        targetsFlow.value = listOfNotNull(getSmartspaceTarget())
+    override suspend fun requiresSetup(): Boolean {
+        if (!isNotificationServiceEnabled(context)) return true
+        if (!notificationDotsEnabled(context).first()) return true
+        return false
     }
 
-    override fun destroy() {
-        media.onPause()
+    override suspend fun startSetup(activity: Activity) {
+        val intent = PreferenceActivity.createIntent(activity, "/${Routes.GENERAL}/")
+        val message = activity.getString(R.string.event_provider_missing_notification_dots,
+            activity.getString(providerName))
+        BlankActivity.startBlankActivityDialog(
+            activity, intent,
+            activity.getString(R.string.title_missing_notification_access),
+            message,
+            context.getString(R.string.title_change_settings)
+        )
     }
 }
